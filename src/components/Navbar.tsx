@@ -15,6 +15,7 @@ import {
   X
 } from 'lucide-react';
 import { setCustomProductionUrl, getCustomProductionUrl } from '../config/apiConfig';
+import { FEATURE_FLAGS } from '../config/featureFlags';
 import { ModalBackdrop, ModalPanel } from '../styles/styledElements';
 
 const Header = styled.header`
@@ -521,8 +522,12 @@ export const Navbar: React.FC = () => {
     { path: '/', label: 'User Portal', icon: UserIcon },
     { path: '/profile', label: 'Sessions & Profile', icon: ShieldCheck, requiresAuth: true },
     { path: '/developer/projects', label: 'Projects & Keys', icon: Layers, requiresAuth: true },
-    { path: '/admin', label: 'Admin (Clients)', icon: Settings },
-    { path: '/playground', label: 'OAuth Sandbox', icon: Terminal },
+    ...(FEATURE_FLAGS.ENABLE_ADMIN_PORTAL
+      ? [{ path: '/admin', label: 'Admin (Clients)', icon: Settings }]
+      : []),
+    ...(FEATURE_FLAGS.ENABLE_PLAYGROUND
+      ? [{ path: '/playground', label: 'OAuth Sandbox', icon: Terminal }]
+      : []),
   ];
 
   const handleSaveCustomUrl = (e: React.FormEvent) => {

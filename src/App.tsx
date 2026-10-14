@@ -6,6 +6,7 @@ import { Navbar } from './components/Navbar';
 import { LoadingFallback } from './components/LoadingFallback';
 import { theme } from './styles/theme';
 import { GlobalStyles } from './styles/GlobalStyles';
+import { FEATURE_FLAGS } from './config/featureFlags';
 
 // Route-based Code-Splitting
 const AuthPage = lazy(() => import('./pages/AuthPage').then(m => ({ default: m.AuthPage })));
@@ -78,10 +79,20 @@ export const App: React.FC = () => {
                   <Route path="/" element={<AuthPage />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/admin" element={<AdminPage />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      FEATURE_FLAGS.ENABLE_ADMIN_PORTAL ? <AdminPage /> : <Navigate to="/" replace />
+                    }
+                  />
                   <Route path="/developer/projects" element={<ProjectsPage />} />
                   <Route path="/oauth/authorize" element={<OAuthConsentPage />} />
-                  <Route path="/playground" element={<PlaygroundPage />} />
+                  <Route
+                    path="/playground"
+                    element={
+                      FEATURE_FLAGS.ENABLE_PLAYGROUND ? <PlaygroundPage /> : <Navigate to="/" replace />
+                    }
+                  />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </Suspense>

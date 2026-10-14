@@ -551,6 +551,16 @@ export const AuthPage: React.FC = () => {
     }
   };
 
+  const redirectAfterAuth = () => {
+    const clientId = searchParams.get('client_id');
+    const redirectUri = searchParams.get('redirect_uri');
+    if (clientId && redirectUri) {
+      navigate(`/oauth/authorize?${searchParams.toString()}`);
+    } else {
+      navigate('/profile');
+    }
+  };
+
   const startQRPoll = (codeToPoll: string) => {
     pollIntervalRef.current = setInterval(async () => {
       setQrTimeLeft((prev) => {
@@ -570,7 +580,7 @@ export const AuthPage: React.FC = () => {
           const profile = await api.getProfile(res.token);
           if (profile && profile.message) {
             login(res.token, profile.message);
-            navigate('/profile');
+            redirectAfterAuth();
           }
         }
       } catch {
@@ -588,7 +598,7 @@ export const AuthPage: React.FC = () => {
       const res = await api.loginUser({ email: loginEmail, password: loginPassword });
       preferenceStorage.setRememberedEmail(loginEmail);
       login(res.token, res.user);
-      navigate('/profile');
+      redirectAfterAuth();
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check credentials.');
     } finally {
@@ -613,7 +623,7 @@ export const AuthPage: React.FC = () => {
       const res = await api.registerUser(payload);
       preferenceStorage.setRememberedEmail(regEmail);
       login(res.token, res.user);
-      navigate('/profile');
+      redirectAfterAuth();
     } catch (err: any) {
       setError(err.message || 'Registration failed');
     } finally {

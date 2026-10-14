@@ -190,6 +190,10 @@ export const envStorage = {
     if (mode === 'production' || mode === 'development') {
       return mode;
     }
+    // Default to production automatically on production domains
+    if (typeof window !== 'undefined' && window.location.hostname.includes('harshit107.online')) {
+      return 'production';
+    }
     return 'development';
   },
 

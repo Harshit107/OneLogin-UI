@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { authStorage, preferenceStorage } from '../utils/storage';
+import { FEATURE_FLAGS } from '../config/featureFlags';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -727,14 +728,16 @@ export const AuthPage: React.FC = () => {
                 <UserPlus />
                 Sign Up
               </TabButton>
-              <TabButton
-                type="button"
-                onClick={() => { setActiveTab('qr'); setError(null); setSuccess(null); }}
-                $isActive={activeTab === 'qr'}
-              >
-                <QrCode />
-                QR Code
-              </TabButton>
+              {FEATURE_FLAGS.ENABLE_QR_AUTH && (
+                <TabButton
+                  type="button"
+                  onClick={() => { setActiveTab('qr'); setError(null); setSuccess(null); }}
+                  $isActive={activeTab === 'qr'}
+                >
+                  <QrCode />
+                  QR Code
+                </TabButton>
+              )}
             </TabBar>
           ) : (
             <div style={{ marginBottom: '24px' }}>
@@ -1038,7 +1041,7 @@ export const AuthPage: React.FC = () => {
           )}
 
           {/* Tab 4: QR Companion Auth */}
-          {activeTab === 'qr' && (
+          {FEATURE_FLAGS.ENABLE_QR_AUTH && activeTab === 'qr' && (
             <QRSection>
               <QRCard>
                 {qrCode ? (

@@ -8,6 +8,9 @@ export const FEATURE_FLAGS = {
 
   // Move playground / sandbox behind UI feature flag
   ENABLE_PLAYGROUND: false,
+
+  // Move QR Code auth behind UI feature flag
+  ENABLE_QR_AUTH: false,
 } as const;
 
 export type FeatureFlagKey = keyof typeof FEATURE_FLAGS;

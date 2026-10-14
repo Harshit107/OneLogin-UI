@@ -16,9 +16,13 @@ import {
   User as UserIcon, 
   Phone,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowLeft,
+  Send,
+  Key
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { authStorage, preferenceStorage } from '../utils/storage';
 
 const spin = keyframes`
   from { transform: rotate(0deg); }
@@ -159,6 +163,9 @@ const FormLabel = styled.label`
   font-weight: 600;
   color: #cbd5e1;
   letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
 
 const InputWrapper = styled.div`
@@ -311,6 +318,32 @@ const GridTwoCols = styled.div`
   }
 `;
 
+const InlineActionRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: -12px;
+  margin-bottom: 20px;
+`;
+
+const TextLinkButton = styled.button`
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    color: #a5b4fc;
+    text-decoration: underline;
+  }
+`;
+
 /* QR Styling */
 const QRSection = styled.div`
   display: flex;
@@ -438,15 +471,16 @@ const SimulatorBtn = styled.button`
 export const AuthPage: React.FC = () => {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'qr'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'forgot' | 'qr'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Login Form
-  const [loginEmail, setLoginEmail] = useState('');
+  // Login Form (prefills remembered email from reusable storage)
+  const [loginEmail, setLoginEmail] = useState(() => preferenceStorage.getRememberedEmail());
   const [loginPassword, setLoginPassword] = useState('');
 
   // Register Form
@@ -456,6 +490,12 @@ export const AuthPage: React.FC = () => {
   const [regPhone, setRegPhone] = useState('');
   const [regImage, setRegImage] = useState('');
 
+  // Forgot Password Form
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetStep, setResetStep] = useState<'request' | 'reset'>('request');
+
   // QR Code State
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [qrTimeLeft, setQrTimeLeft] = useState(120);
@@ -463,6 +503,16 @@ export const AuthPage: React.FC = () => {
   const [qrSimulatorCode, setQrSimulatorCode] = useState('');
   const [qrSimulatorSuccess, setQrSimulatorSuccess] = useState(false);
   const pollIntervalRef = useRef<any>(null);
+
+  // Check if resetToken query param is present on mount
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('resetToken');
+    if (tokenFromUrl) {
+      setResetToken(tokenFromUrl);
+      setResetStep('reset');
+      setActiveTab('forgot');
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (activeTab === 'qr') {
@@ -536,6 +586,7 @@ export const AuthPage: React.FC = () => {
 
     try {
       const res = await api.loginUser({ email: loginEmail, password: loginPassword });
+      preferenceStorage.setRememberedEmail(loginEmail);
       login(res.token, res.user);
       navigate('/profile');
     } catch (err: any) {
@@ -560,10 +611,55 @@ export const AuthPage: React.FC = () => {
       if (regImage) payload.userImage = regImage;
 
       const res = await api.registerUser(payload);
+      preferenceStorage.setRememberedEmail(regEmail);
       login(res.token, res.user);
       navigate('/profile');
     } catch (err: any) {
       setError(err.message || 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const res = await api.forgotPassword(forgotEmail.trim());
+      setSuccess(res.msg || 'Password reset link sent to your email.');
+      if (res.resetToken) {
+        setResetToken(res.resetToken);
+        setResetStep('reset');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset link.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setIsLoading(true);
+
+    try {
+      const res = await api.resetPassword({
+        token: resetToken.trim(),
+        newPassword: newPassword.trim(),
+      });
+      setSuccess(res.msg || 'Password successfully updated! Please log in.');
+      setTimeout(() => {
+        setActiveTab('login');
+        setResetStep('request');
+        setSuccess(null);
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to reset password.');
     } finally {
       setIsLoading(false);
     }
@@ -574,7 +670,7 @@ export const AuthPage: React.FC = () => {
       setError('You need an active session in another window to authorize this QR code.');
       return;
     }
-    const token = localStorage.getItem('onelogin_token');
+    const token = authStorage.getToken();
     if (!token || !qrSimulatorCode) return;
 
     try {
@@ -590,41 +686,56 @@ export const AuthPage: React.FC = () => {
       <AuthContainer>
         {/* Header */}
         <HeaderSection>
-          <AuthTitle>Centralized Access</AuthTitle>
+          <AuthTitle>
+            {activeTab === 'forgot' ? 'Account Recovery' : 'Centralized Access'}
+          </AuthTitle>
           <AuthSubtitle>
-            Sign in once to securely access all connected OneLogin applications.
+            {activeTab === 'forgot'
+              ? 'Request a password reset link or update your credentials.'
+              : 'Sign in once to securely access all connected OneLogin applications.'}
           </AuthSubtitle>
         </HeaderSection>
 
         {/* Card */}
         <AuthCard>
-          {/* Segmented Tab Controls */}
-          <TabBar>
-            <TabButton
-              type="button"
-              onClick={() => { setActiveTab('login'); setError(null); }}
-              $isActive={activeTab === 'login'}
-            >
-              <KeyRound />
-              Sign In
-            </TabButton>
-            <TabButton
-              type="button"
-              onClick={() => { setActiveTab('register'); setError(null); }}
-              $isActive={activeTab === 'register'}
-            >
-              <UserPlus />
-              Sign Up
-            </TabButton>
-            <TabButton
-              type="button"
-              onClick={() => { setActiveTab('qr'); setError(null); }}
-              $isActive={activeTab === 'qr'}
-            >
-              <QrCode />
-              QR Code
-            </TabButton>
-          </TabBar>
+          {/* Segmented Tab Controls (hidden when on Forgot Password screen) */}
+          {activeTab !== 'forgot' ? (
+            <TabBar>
+              <TabButton
+                type="button"
+                onClick={() => { setActiveTab('login'); setError(null); setSuccess(null); }}
+                $isActive={activeTab === 'login'}
+              >
+                <KeyRound />
+                Sign In
+              </TabButton>
+              <TabButton
+                type="button"
+                onClick={() => { setActiveTab('register'); setError(null); setSuccess(null); }}
+                $isActive={activeTab === 'register'}
+              >
+                <UserPlus />
+                Sign Up
+              </TabButton>
+              <TabButton
+                type="button"
+                onClick={() => { setActiveTab('qr'); setError(null); setSuccess(null); }}
+                $isActive={activeTab === 'qr'}
+              >
+                <QrCode />
+                QR Code
+              </TabButton>
+            </TabBar>
+          ) : (
+            <div style={{ marginBottom: '24px' }}>
+              <TextLinkButton
+                type="button"
+                onClick={() => { setActiveTab('login'); setError(null); setSuccess(null); }}
+              >
+                <ArrowLeft size={16} /> Back to Sign In
+              </TextLinkButton>
+            </div>
+          )}
 
           {/* Error Banner */}
           {error && (
@@ -660,7 +771,7 @@ export const AuthPage: React.FC = () => {
                 </InputWrapper>
               </FormGroup>
 
-              <FormGroup style={{ marginBottom: '24px' }}>
+              <FormGroup style={{ marginBottom: '18px' }}>
                 <FormLabel>Password</FormLabel>
                 <InputWrapper>
                   <Lock className="icon-prefix" />
@@ -682,6 +793,21 @@ export const AuthPage: React.FC = () => {
                   </EyeToggleBtn>
                 </InputWrapper>
               </FormGroup>
+
+              {/* Forgot password link */}
+              <InlineActionRow>
+                <TextLinkButton
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(loginEmail);
+                    setActiveTab('forgot');
+                    setError(null);
+                    setSuccess(null);
+                  }}
+                >
+                  Forgot password?
+                </TextLinkButton>
+              </InlineActionRow>
 
               <SubmitButton type="submit" disabled={isLoading}>
                 {isLoading ? (
@@ -792,7 +918,116 @@ export const AuthPage: React.FC = () => {
             </form>
           )}
 
-          {/* Tab 3: QR Companion Auth */}
+          {/* Tab 3: Forgot Password */}
+          {activeTab === 'forgot' && (
+            <div>
+              {resetStep === 'request' ? (
+                <form onSubmit={handleForgotPassword}>
+                  <FormGroup style={{ marginBottom: '24px' }}>
+                    <FormLabel>Registered Email Address</FormLabel>
+                    <InputWrapper>
+                      <Mail className="icon-prefix" />
+                      <StyledInput
+                        type="email"
+                        required
+                        $hasIcon
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </InputWrapper>
+                  </FormGroup>
+
+                  <SubmitButton type="submit" disabled={isLoading || !forgotEmail.trim()}>
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="spinner" size={18} />
+                        <span>Sending Link...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={16} />
+                        <span>Send Password Reset Link</span>
+                      </>
+                    )}
+                  </SubmitButton>
+
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <TextLinkButton
+                      type="button"
+                      onClick={() => setResetStep('reset')}
+                    >
+                      Already have a reset token? Enter it here
+                    </TextLinkButton>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleResetPassword}>
+                  <FormGroup>
+                    <FormLabel>Reset Token</FormLabel>
+                    <InputWrapper>
+                      <Key className="icon-prefix" />
+                      <StyledInput
+                        type="text"
+                        required
+                        $hasIcon
+                        value={resetToken}
+                        onChange={(e) => setResetToken(e.target.value)}
+                        placeholder="Paste reset token string"
+                        style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                      />
+                    </InputWrapper>
+                  </FormGroup>
+
+                  <FormGroup style={{ marginBottom: '24px' }}>
+                    <FormLabel>New Password (Min. 7 Characters)</FormLabel>
+                    <InputWrapper>
+                      <Lock className="icon-prefix" />
+                      <StyledInput
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={7}
+                        $hasIcon
+                        $hasRight
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                      />
+                      <EyeToggleBtn
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label="Toggle password visibility"
+                      >
+                        {showPassword ? <EyeOff /> : <Eye />}
+                      </EyeToggleBtn>
+                    </InputWrapper>
+                  </FormGroup>
+
+                  <SubmitButton type="submit" disabled={isLoading || !resetToken.trim() || !newPassword.trim()}>
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="spinner" size={18} />
+                        <span>Updating Password...</span>
+                      </>
+                    ) : (
+                      'Save New Password & Sign In'
+                    )}
+                  </SubmitButton>
+
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <TextLinkButton
+                      type="button"
+                      onClick={() => setResetStep('request')}
+                    >
+                      Request a different reset token
+                    </TextLinkButton>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* Tab 4: QR Companion Auth */}
           {activeTab === 'qr' && (
             <QRSection>
               <QRCard>

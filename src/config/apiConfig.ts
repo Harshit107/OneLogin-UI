@@ -1,7 +1,6 @@
-export type EnvironmentMode = 'development' | 'production';
+import { envStorage, type EnvironmentMode } from '../utils/storage';
 
-const STORAGE_KEY_ENV = 'onelogin_active_env';
-const STORAGE_KEY_CUSTOM_URL = 'onelogin_custom_prod_url';
+export type { EnvironmentMode };
 
 export const ENV_CONFIG = {
   development: {
@@ -21,14 +20,10 @@ export const ENV_CONFIG = {
 };
 
 /**
- * Get currently selected environment
+ * Get currently selected environment from centralized envStorage
  */
 export const getEnvironment = (): EnvironmentMode => {
-  const saved = localStorage.getItem(STORAGE_KEY_ENV);
-  if (saved === 'production' || saved === 'development') {
-    return saved;
-  }
-  return 'development';
+  return envStorage.getMode();
 };
 
 /**
@@ -37,8 +32,7 @@ export const getEnvironment = (): EnvironmentMode => {
 export const getApiBaseUrl = (): string => {
   const env = getEnvironment();
   if (env === 'production') {
-    const custom = localStorage.getItem(STORAGE_KEY_CUSTOM_URL);
-    return custom ? custom.trim() : ENV_CONFIG.production.url;
+    return envStorage.getCustomUrl(ENV_CONFIG.production.url);
   }
   return ENV_CONFIG.development.url;
 };
@@ -47,7 +41,7 @@ export const getApiBaseUrl = (): string => {
  * Switch environment (Single source of truth)
  */
 export const setEnvironment = (mode: EnvironmentMode) => {
-  localStorage.setItem(STORAGE_KEY_ENV, mode);
+  envStorage.setMode(mode);
   window.dispatchEvent(new CustomEvent('onelogin_env_change', { detail: { mode, url: getApiBaseUrl() } }));
 };
 
@@ -55,10 +49,10 @@ export const setEnvironment = (mode: EnvironmentMode) => {
  * Update custom production URL
  */
 export const setCustomProductionUrl = (url: string) => {
-  localStorage.setItem(STORAGE_KEY_CUSTOM_URL, url);
+  envStorage.setCustomUrl(url.trim());
   window.dispatchEvent(new CustomEvent('onelogin_env_change', { detail: { mode: getEnvironment(), url: getApiBaseUrl() } }));
 };
 
 export const getCustomProductionUrl = (): string => {
-  return localStorage.getItem(STORAGE_KEY_CUSTOM_URL) || ENV_CONFIG.production.url;
+  return envStorage.getCustomUrl(ENV_CONFIG.production.url);
 };

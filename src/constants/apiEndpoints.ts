@@ -18,6 +18,8 @@ export const API_ENDPOINTS = {
     QR_GENERATE: '/users/login/qr/store',
     QR_VALIDATE: '/users/login/qr/validate',
     QR_STORE_TOKEN: '/users/login/qr/storetoken',
+    FORGOT_PASSWORD: '/users/password/forgot',
+    RESET_PASSWORD: '/users/password/reset',
   },
   OAUTH: {
     AUTHORIZE: '/oauth/authorize',

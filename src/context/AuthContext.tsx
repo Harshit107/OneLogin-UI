@@ -3,6 +3,7 @@ import type { User } from '../types';
 import { api } from '../services/api';
 import { getEnvironment, setEnvironment, getApiBaseUrl } from '../config/apiConfig';
 import type { EnvironmentMode } from '../config/apiConfig';
+import { authStorage, adminStorage } from '../utils/storage';
 
 interface AuthContextType {
   user: User | null;
@@ -22,14 +23,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('onelogin_token'));
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('onelogin_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [adminSecret, setAdminSecretState] = useState<string>(
-    () => localStorage.getItem('onelogin_admin_secret') || 'super_secret_admin_key'
-  );
+  const [token, setToken] = useState<string | null>(() => authStorage.getToken());
+  const [user, setUser] = useState<User | null>(() => authStorage.getUser());
+  const [adminSecret, setAdminSecretState] = useState<string>(() => adminStorage.getSecret());
   const [environment, setEnvState] = useState<EnvironmentMode>(getEnvironment());
   const [apiBaseUrl, setApiBaseUrlState] = useState<string>(getApiBaseUrl());
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -47,8 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('onelogin_token', newToken);
-    localStorage.setItem('onelogin_user', JSON.stringify(newUser));
+    authStorage.setAuthSession(newToken, newUser);
   };
 
   const logout = async () => {
@@ -61,8 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
-    localStorage.removeItem('onelogin_token');
-    localStorage.removeItem('onelogin_user');
+    authStorage.clearAuthSession();
   };
 
   const logoutAll = async () => {
@@ -75,8 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
-    localStorage.removeItem('onelogin_token');
-    localStorage.removeItem('onelogin_user');
+    authStorage.clearAuthSession();
   };
 
   const refreshProfile = async () => {
@@ -86,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.getProfile(token);
       if (res && res.message) {
         setUser(res.message);
-        localStorage.setItem('onelogin_user', JSON.stringify(res.message));
+        authStorage.setUser(res.message);
       }
     } catch (err) {
       console.warn('Could not refresh profile:', err);
@@ -97,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateAdminSecret = (secret: string) => {
     setAdminSecretState(secret);
-    localStorage.setItem('onelogin_admin_secret', secret);
+    adminStorage.setSecret(secret);
   };
 
   const toggleEnvironment = (env: EnvironmentMode) => {

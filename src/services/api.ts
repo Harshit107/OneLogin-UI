@@ -116,6 +116,20 @@ class ApiService {
     });
   }
 
+  async forgotPassword(email: string) {
+    return this.request<{ msg: string; resetToken?: string }>(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(params: { token: string; newPassword: string }) {
+    return this.request<{ msg: string }>(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
   /* ------------------------------- QR AUTH -------------------------------- */
 
   async generateQRCode() {

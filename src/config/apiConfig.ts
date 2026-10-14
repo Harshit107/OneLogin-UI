@@ -7,12 +7,14 @@ export const ENV_CONFIG = {
   development: {
     label: 'Development (Local)',
     url: 'http://localhost:5000',
+    uiUrl: 'http://localhost:5173',
     description: 'Local Node.js OneLogin API instance',
     badgeClass: 'badge-dev',
   },
   production: {
     label: 'Production (Live)',
-    url: 'https://onelogin.harshit.dev', // Can be customized by user
+    url: 'https://onelogin-api.harshit107.online',
+    uiUrl: 'https://account.harshit107.online',
     description: 'Cloud deployed OneLogin SSO Server',
     badgeClass: 'badge-prod',
   },

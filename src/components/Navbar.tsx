@@ -673,7 +673,7 @@ export const Navbar: React.FC = () => {
                   type="url"
                   value={customUrlInput}
                   onChange={(e) => setCustomUrlInput(e.target.value)}
-                  placeholder="https://onelogin.harshit.dev"
+                  placeholder="https://onelogin-api.harshit107.online"
                 />
                 <SaveButton type="submit">Save URL</SaveButton>
               </CustomUrlRow>

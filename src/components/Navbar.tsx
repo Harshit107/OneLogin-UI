@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { useAuth } from '../context/AuthContext';
-import { 
-  ShieldCheck, 
-  Server, 
-  User as UserIcon, 
-  Layers, 
-  Terminal, 
-  LogOut, 
+import {
+  ShieldCheck,
+  Server,
+  User as UserIcon,
+  Layers,
+  Terminal,
+  LogOut,
   Settings,
   ChevronDown,
   CheckCircle2,
@@ -118,7 +118,7 @@ const NavLinks = styled.nav`
   }
 `;
 
-const NavItem = styled(Link)<{ $isActive: boolean }>`
+const NavItem = styled(Link) <{ $isActive: boolean }>`
   display: flex;
   align-items: center;
   gap: 8px;

@@ -19,7 +19,7 @@ Modern React + TypeScript frontend for the OneLogin Identity Provider & OAuth 2.
   - OAuth 2.0 Client application registration with one-time `client_secret` copy modal.
   - Instant token revocation & blacklist manager (`POST /oauth/revoke-token`).
 - **Developer Projects Hub (`/developer/projects`)**:
-  - Register new applications in the Firebase Realtime Database.
+  - Register new applications in the native MongoDB database.
   - Retrieve and copy API credentials.
   - Live toggles for Maintenance Mode and Email Verification requirement.
 - **Interactive OAuth 2.0 Consent Screen (`/oauth/authorize`)**:

@@ -663,11 +663,7 @@ export const AuthPage: React.FC = () => {
 
     try {
       const res = await api.forgotPassword(forgotEmail.trim());
-      setSuccess(res.msg || 'Password reset link sent to your email.');
-      if (res.resetToken) {
-        setResetToken(res.resetToken);
-        setResetStep('reset');
-      }
+      setSuccess(res.msg || 'A password reset link has been dispatched to your email. Please check your inbox to choose a new password.');
     } catch (err: any) {
       setError(err.message || 'Failed to send reset link.');
     } finally {

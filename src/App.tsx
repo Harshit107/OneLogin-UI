@@ -76,6 +76,25 @@ const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) =>
   return children;
 };
 
+/**
+ * Route Guard for Guest-only pages (Auth/Login/Register)
+ * If already logged in, redirect to /profile (or OAuth consent if client_id present)
+ */
+const GuestRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { token } = useAuth();
+  const location = window.location;
+  if (token) {
+    const searchParams = new URLSearchParams(location.search);
+    const clientId = searchParams.get('client_id');
+    const redirectUri = searchParams.get('redirect_uri');
+    if (clientId && redirectUri) {
+      return <Navigate to={`/oauth/authorize?${searchParams.toString()}`} replace />;
+    }
+    return <Navigate to="/profile" replace />;
+  }
+  return children;
+};
+
 export const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
@@ -90,8 +109,22 @@ export const App: React.FC = () => {
             <MainContent>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
-                  <Route path="/" element={<AuthPage />} />
-                  <Route path="/auth" element={<AuthPage />} />
+                  <Route
+                    path="/"
+                    element={
+                      <GuestRoute>
+                        <AuthPage />
+                      </GuestRoute>
+                    }
+                  />
+                  <Route
+                    path="/auth"
+                    element={
+                      <GuestRoute>
+                        <AuthPage />
+                      </GuestRoute>
+                    }
+                  />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route
                     path="/admin"

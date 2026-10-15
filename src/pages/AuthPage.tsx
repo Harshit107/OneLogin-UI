@@ -470,7 +470,7 @@ const SimulatorBtn = styled.button`
 `;
 
 export const AuthPage: React.FC = () => {
-  const { user, login } = useAuth();
+  const { user, token, login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -507,10 +507,10 @@ export const AuthPage: React.FC = () => {
 
   // If already authenticated, redirect to Profile or OAuth consent immediately
   useEffect(() => {
-    if (user && authStorage.getToken()) {
+    if (token || authStorage.getToken()) {
       redirectAfterAuth();
     }
-  }, [user]);
+  }, [token, user]);
 
   // Check if resetToken query param is present on mount
   useEffect(() => {
@@ -699,7 +699,7 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  if (user && authStorage.getToken()) {
+  if ((user && token) || authStorage.getToken()) {
     return (
       <AuthWrapper>
         <AuthContainer style={{ textAlign: 'center' }}>

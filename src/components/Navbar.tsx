@@ -525,8 +525,9 @@ export const Navbar: React.FC = () => {
     window.location.hostname !== '127.0.0.1';
 
   const navLinks = [
-    { path: token ? '/profile' : '/', label: 'User Portal', icon: UserIcon },
-    { path: '/profile', label: 'Sessions & Profile', icon: ShieldCheck, requiresAuth: true },
+    ...(token
+      ? [{ path: '/profile', label: 'Sessions & Profile', icon: ShieldCheck, requiresAuth: true }]
+      : [{ path: '/', label: 'User Portal', icon: UserIcon }]),
     ...(isAdmin
       ? [{ path: '/developer/projects', label: 'Projects & Keys', icon: Layers, requiresAuth: true }]
       : []),

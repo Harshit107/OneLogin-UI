@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import styled, { ThemeProvider } from 'styled-components';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { LoadingFallback } from './components/LoadingFallback';
 import { theme } from './styles/theme';
@@ -62,6 +62,20 @@ const FooterBadgeGroup = styled.div`
   font-weight: 500;
 `;
 
+/**
+ * Route Guard for Admin-only pages
+ */
+const AdminRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
+  const { token, isAdmin, isLoading } = useAuth();
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+  if (!isAdmin && !isLoading) {
+    return <Navigate to="/profile" replace />;
+  }
+  return children;
+};
+
 export const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
@@ -82,15 +96,26 @@ export const App: React.FC = () => {
                   <Route
                     path="/admin"
                     element={
-                      FEATURE_FLAGS.ENABLE_ADMIN_PORTAL ? <AdminPage /> : <Navigate to="/" replace />
+                      <AdminRoute>
+                        {FEATURE_FLAGS.ENABLE_ADMIN_PORTAL ? <AdminPage /> : <Navigate to="/profile" replace />}
+                      </AdminRoute>
                     }
                   />
-                  <Route path="/developer/projects" element={<ProjectsPage />} />
+                  <Route
+                    path="/developer/projects"
+                    element={
+                      <AdminRoute>
+                        <ProjectsPage />
+                      </AdminRoute>
+                    }
+                  />
                   <Route path="/oauth/authorize" element={<OAuthConsentPage />} />
                   <Route
                     path="/playground"
                     element={
-                      FEATURE_FLAGS.ENABLE_PLAYGROUND ? <PlaygroundPage /> : <Navigate to="/" replace />
+                      <AdminRoute>
+                        {FEATURE_FLAGS.ENABLE_PLAYGROUND ? <PlaygroundPage /> : <Navigate to="/profile" replace />}
+                      </AdminRoute>
                     }
                   />
                   <Route path="*" element={<Navigate to="/" replace />} />

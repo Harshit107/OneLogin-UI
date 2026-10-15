@@ -1,15 +1,17 @@
 import { getApiBaseUrl } from '../config/apiConfig';
 import { API_ENDPOINTS } from '../constants/apiEndpoints';
 import type { User, OAuthClient, ProjectDetails, TokenResponse, UserInfoResponse } from '../types';
+import { authStorage } from '../utils/storage';
 
 class ApiService {
   private getHeaders(token?: string, extraHeaders: Record<string, string> = {}): HeadersInit {
+    const activeToken = token || authStorage.getToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...extraHeaders,
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (activeToken) {
+      headers['Authorization'] = `Bearer ${activeToken}`;
     }
     return headers;
   }
@@ -230,12 +232,26 @@ class ApiService {
 
   async updateProject(
     data: { projectId: string; name?: string; email?: string; maintenance?: boolean; verification?: boolean },
-    token: string
+    token?: string
   ) {
     return this.request<{ message: string }>(API_ENDPOINTS.DEVELOPER.UPDATE_PROJECT, {
       method: 'PATCH',
       headers: this.getHeaders(token),
       body: JSON.stringify(data),
+    });
+  }
+
+  async listProjects(token?: string) {
+    return this.request<{ message: string; projects: ProjectDetails[] }>('/developer/project/list', {
+      method: 'GET',
+      headers: this.getHeaders(token),
+    });
+  }
+
+  async checkIsAdmin(token?: string) {
+    return this.request<{ isAdmin: boolean; email: string }>('/users/check/admin', {
+      method: 'GET',
+      headers: this.getHeaders(token),
     });
   }
 }

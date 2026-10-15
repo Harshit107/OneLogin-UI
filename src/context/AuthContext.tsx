@@ -8,6 +8,7 @@ import { authStorage, adminStorage } from '../utils/storage';
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  isAdmin: boolean;
   adminSecret: string;
   environment: EnvironmentMode;
   apiBaseUrl: string;
@@ -25,6 +26,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(() => authStorage.getToken());
   const [user, setUser] = useState<User | null>(() => authStorage.getUser());
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    const cached = authStorage.getUser();
+    return Boolean(cached?.isAdmin);
+  });
   const [adminSecret, setAdminSecretState] = useState<string>(() => adminStorage.getSecret());
   const [environment, setEnvState] = useState<EnvironmentMode>(getEnvironment());
   const [apiBaseUrl, setApiBaseUrlState] = useState<string>(getApiBaseUrl());
@@ -40,10 +45,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('onelogin_env_change', handleEnvChange);
   }, []);
 
+  // Verify admin status on token load
+  useEffect(() => {
+    if (token) {
+      api.checkIsAdmin(token)
+        .then((res) => {
+          if (res && typeof res.isAdmin === 'boolean') {
+            setIsAdmin(res.isAdmin);
+            const cached = authStorage.getUser();
+            if (cached && cached.isAdmin !== res.isAdmin) {
+              const updated = { ...cached, isAdmin: res.isAdmin };
+              setUser(updated);
+              authStorage.setUser(updated);
+            }
+          }
+        })
+        .catch(() => {
+          setIsAdmin(false);
+        });
+    } else {
+      setIsAdmin(false);
+    }
+  }, [token]);
+
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
+    setIsAdmin(Boolean(newUser.isAdmin));
     authStorage.setAuthSession(newToken, newUser);
+
+    // Verify admin status in background
+    api.checkIsAdmin(newToken)
+      .then((res) => {
+        if (res && typeof res.isAdmin === 'boolean') {
+          setIsAdmin(res.isAdmin);
+          const updated = { ...newUser, isAdmin: res.isAdmin };
+          setUser(updated);
+          authStorage.setUser(updated);
+        }
+      })
+      .catch(() => {});
   };
 
   const logout = async () => {
@@ -56,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
+    setIsAdmin(false);
     authStorage.clearAuthSession();
   };
 
@@ -69,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setToken(null);
     setUser(null);
+    setIsAdmin(false);
     authStorage.clearAuthSession();
   };
 
@@ -79,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await api.getProfile(token);
       if (res && res.message) {
         setUser(res.message);
+        setIsAdmin(Boolean(res.message.isAdmin));
         authStorage.setUser(res.message);
       }
     } catch (err) {
@@ -102,6 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         token,
+        isAdmin,
         adminSecret,
         environment,
         apiBaseUrl,

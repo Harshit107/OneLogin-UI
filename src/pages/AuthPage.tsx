@@ -505,6 +505,13 @@ export const AuthPage: React.FC = () => {
   const [qrSimulatorSuccess, setQrSimulatorSuccess] = useState(false);
   const pollIntervalRef = useRef<any>(null);
 
+  // If already authenticated, redirect to Profile or OAuth consent immediately
+  useEffect(() => {
+    if (user && authStorage.getToken()) {
+      redirectAfterAuth();
+    }
+  }, [user]);
+
   // Check if resetToken query param is present on mount
   useEffect(() => {
     const tokenFromUrl = searchParams.get('resetToken');
@@ -691,6 +698,26 @@ export const AuthPage: React.FC = () => {
       setError(err.message || 'Failed to authorize QR code');
     }
   };
+
+  if (user && authStorage.getToken()) {
+    return (
+      <AuthWrapper>
+        <AuthContainer style={{ textAlign: 'center' }}>
+          <RefreshCw
+            style={{
+              width: 36,
+              height: 36,
+              color: '#818cf8',
+              animation: `${spin} 1.2s linear infinite`,
+              marginBottom: 16,
+            }}
+          />
+          <AuthTitle style={{ fontSize: '1.4rem' }}>Already Authenticated</AuthTitle>
+          <AuthSubtitle>Redirecting to your dashboard...</AuthSubtitle>
+        </AuthContainer>
+      </AuthWrapper>
+    );
+  }
 
   return (
     <AuthWrapper>

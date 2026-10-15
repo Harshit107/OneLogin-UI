@@ -9,6 +9,7 @@ export interface User {
   email: string;
   phone?: number;
   isVerified: boolean;
+  isAdmin?: boolean;
   userImage?: string;
   tokens: UserToken[];
   createdAt?: string;

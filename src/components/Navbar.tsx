@@ -513,20 +513,28 @@ const CloseModalBtn = styled.button`
 `;
 
 export const Navbar: React.FC = () => {
-  const { user, token, logout, environment, toggleEnvironment, apiBaseUrl } = useAuth();
+  const { user, token, isAdmin, logout, environment, toggleEnvironment, apiBaseUrl } = useAuth();
   const location = useLocation();
   const [showEnvModal, setShowEnvModal] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState(getCustomProductionUrl());
 
+  // Detect whether running in production host
+  const isProductionHost =
+    typeof window !== 'undefined' &&
+    window.location.hostname !== 'localhost' &&
+    window.location.hostname !== '127.0.0.1';
+
   const navLinks = [
-    { path: '/', label: 'User Portal', icon: UserIcon },
+    { path: token ? '/profile' : '/', label: 'User Portal', icon: UserIcon },
     { path: '/profile', label: 'Sessions & Profile', icon: ShieldCheck, requiresAuth: true },
-    { path: '/developer/projects', label: 'Projects & Keys', icon: Layers, requiresAuth: true },
-    ...(FEATURE_FLAGS.ENABLE_ADMIN_PORTAL
-      ? [{ path: '/admin', label: 'Admin (Clients)', icon: Settings }]
+    ...(isAdmin
+      ? [{ path: '/developer/projects', label: 'Projects & Keys', icon: Layers, requiresAuth: true }]
       : []),
-    ...(FEATURE_FLAGS.ENABLE_PLAYGROUND
-      ? [{ path: '/playground', label: 'OAuth Sandbox', icon: Terminal }]
+    ...(isAdmin && FEATURE_FLAGS.ENABLE_ADMIN_PORTAL
+      ? [{ path: '/admin', label: 'Admin (Clients)', icon: Settings, requiresAuth: true }]
+      : []),
+    ...(isAdmin && FEATURE_FLAGS.ENABLE_PLAYGROUND
+      ? [{ path: '/playground', label: 'OAuth Sandbox', icon: Terminal, requiresAuth: true }]
       : []),
   ];
 
@@ -573,16 +581,18 @@ export const Navbar: React.FC = () => {
 
           {/* Right Controls: Env Switcher & Profile/Logout */}
           <RightControls>
-            {/* Single Source of Truth Env Toggle Button */}
-            <EnvButton
-              $mode={environment}
-              onClick={() => setShowEnvModal(true)}
-              title="Click to switch or configure API target environment"
-            >
-              <Server className="server-icon" />
-              <span>{environment === 'development' ? 'DEV' : 'PROD'}</span>
-              <ChevronDown className="chevron-icon" />
-            </EnvButton>
+            {/* Env Toggle Button - Only shown in development / local testing */}
+            {!isProductionHost && (
+              <EnvButton
+                $mode={environment}
+                onClick={() => setShowEnvModal(true)}
+                title="Click to switch or configure API target environment"
+              >
+                <Server className="server-icon" />
+                <span>{environment === 'development' ? 'DEV' : 'PROD'}</span>
+                <ChevronDown className="chevron-icon" />
+              </EnvButton>
+            )}
 
             {/* User Profile / Logout */}
             {user && token ? (

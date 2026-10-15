@@ -512,13 +512,29 @@ export const AuthPage: React.FC = () => {
     }
   }, [token, user]);
 
-  // Check if resetToken query param is present on mount
+  // Check if resetToken or verify query param is present on mount
   useEffect(() => {
     const tokenFromUrl = searchParams.get('resetToken');
     if (tokenFromUrl) {
       setResetToken(tokenFromUrl);
       setResetStep('reset');
       setActiveTab('forgot');
+    }
+
+    const verifyToken = searchParams.get('verify') || searchParams.get('verificationToken');
+    if (verifyToken) {
+      setIsLoading(true);
+      api.verifyEmailToken(verifyToken)
+        .then((res) => {
+          setSuccess(res.msg || '🎉 Email verified successfully! You can now sign in.');
+          setActiveTab('login');
+        })
+        .catch((err) => {
+          setError(err.message || 'Invalid or expired verification link.');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
   }, [searchParams]);
 
